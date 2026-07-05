@@ -34,6 +34,51 @@
     color: #d9c9ff;
     font-size: 0.95rem;
   }
+  .birthday-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+  }
+  .birthday-card label {
+    display: block;
+    font-size: 0.9rem;
+    color: #d9c9ff;
+    margin-bottom: 8px;
+  }
+  .birthday-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .birthday-row input[type="date"] {
+    flex: 1;
+    min-width: 160px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 0.95rem;
+  }
+  .birthday-row button {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #ffd166, #ff8fab);
+    color: #241338;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .birthday-row button:hover { filter: brightness(1.05); }
+  .birthday-error {
+    color: #ff8fab;
+    font-size: 0.85rem;
+    margin-top: 8px;
+    min-height: 1em;
+  }
   .signs-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -126,6 +171,15 @@
       <div class="date" id="todayLabel"></div>
     </header>
 
+    <div class="birthday-card">
+      <label for="birthdayInput">生年月日から占う</label>
+      <div class="birthday-row">
+        <input type="date" id="birthdayInput">
+        <button type="button" id="birthdaySubmit">自分の星座を占う</button>
+      </div>
+      <div class="birthday-error" id="birthdayError"></div>
+    </div>
+
     <div class="signs-grid" id="signsGrid"></div>
 
     <div id="result">
@@ -148,19 +202,32 @@
 
 <script>
 const SIGNS = [
-  { key: "aries",       name: "おひつじ座", emoji: "♈", range: "3/21–4/19" },
-  { key: "taurus",      name: "おうし座",   emoji: "♉", range: "4/20–5/20" },
-  { key: "gemini",      name: "ふたご座",   emoji: "♊", range: "5/21–6/21" },
-  { key: "cancer",      name: "かに座",     emoji: "♋", range: "6/22–7/22" },
-  { key: "leo",         name: "しし座",     emoji: "♌", range: "7/23–8/22" },
-  { key: "virgo",       name: "おとめ座",   emoji: "♍", range: "8/23–9/22" },
-  { key: "libra",       name: "てんびん座", emoji: "♎", range: "9/23–10/23" },
-  { key: "scorpio",     name: "さそり座",   emoji: "♏", range: "10/24–11/22" },
-  { key: "sagittarius", name: "いて座",     emoji: "♐", range: "11/23–12/21" },
-  { key: "capricorn",   name: "やぎ座",     emoji: "♑", range: "12/22–1/19" },
-  { key: "aquarius",    name: "みずがめ座", emoji: "♒", range: "1/20–2/18" },
-  { key: "pisces",      name: "うお座",     emoji: "♓", range: "2/19–3/20" },
+  { key: "aries",       name: "おひつじ座", emoji: "♈", range: "3/21–4/19",  start: [3,21],  end: [4,19] },
+  { key: "taurus",      name: "おうし座",   emoji: "♉", range: "4/20–5/20",  start: [4,20],  end: [5,20] },
+  { key: "gemini",      name: "ふたご座",   emoji: "♊", range: "5/21–6/21",  start: [5,21],  end: [6,21] },
+  { key: "cancer",      name: "かに座",     emoji: "♋", range: "6/22–7/22",  start: [6,22],  end: [7,22] },
+  { key: "leo",         name: "しし座",     emoji: "♌", range: "7/23–8/22",  start: [7,23],  end: [8,22] },
+  { key: "virgo",       name: "おとめ座",   emoji: "♍", range: "8/23–9/22",  start: [8,23],  end: [9,22] },
+  { key: "libra",       name: "てんびん座", emoji: "♎", range: "9/23–10/23", start: [9,23],  end: [10,23] },
+  { key: "scorpio",     name: "さそり座",   emoji: "♏", range: "10/24–11/22",start: [10,24], end: [11,22] },
+  { key: "sagittarius", name: "いて座",     emoji: "♐", range: "11/23–12/21",start: [11,23], end: [12,21] },
+  { key: "capricorn",   name: "やぎ座",     emoji: "♑", range: "12/22–1/19", start: [12,22], end: [1,19] },
+  { key: "aquarius",    name: "みずがめ座", emoji: "♒", range: "1/20–2/18",  start: [1,20],  end: [2,18] },
+  { key: "pisces",      name: "うお座",     emoji: "♓", range: "2/19–3/20",  start: [2,19],  end: [3,20] },
 ];
+
+function getSignByMonthDay(month, day) {
+  return SIGNS.find(s => {
+    const [sm, sd] = s.start, [em, ed] = s.end;
+    if (sm <= em) {
+      return (month > sm || (month === sm && day >= sd)) &&
+             (month < em || (month === em && day <= ed));
+    }
+    // Wraps across year end (capricorn: 12/22–1/19)
+    return (month > sm || (month === sm && day >= sd)) ||
+           (month < em || (month === em && day <= ed));
+  });
+}
 
 const FORTUNE_TEMPLATES = [
   "今日はいつもより直感が冴える日。ふと浮かんだアイデアを行動に移してみると、思わぬ好結果につながりそう。",
@@ -238,12 +305,34 @@ document.getElementById("todayLabel").textContent =
   new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" }) + " の運勢";
 
 const grid = document.getElementById("signsGrid");
+const signButtons = {};
 SIGNS.forEach(sign => {
   const btn = document.createElement("button");
   btn.className = "sign-btn";
   btn.innerHTML = `<span class="emoji">${sign.emoji}</span><span class="name">${sign.name}</span><span class="range">${sign.range}</span>`;
   btn.addEventListener("click", () => selectSign(sign, btn));
   grid.appendChild(btn);
+  signButtons[sign.key] = btn;
+});
+
+document.getElementById("birthdaySubmit").addEventListener("click", () => {
+  const input = document.getElementById("birthdayInput");
+  const errorEl = document.getElementById("birthdayError");
+  errorEl.textContent = "";
+
+  if (!input.value) {
+    errorEl.textContent = "生年月日を入力してください。";
+    return;
+  }
+  const [, monthStr, dayStr] = input.value.split("-");
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+  const sign = getSignByMonthDay(month, day);
+  if (!sign) {
+    errorEl.textContent = "星座を判定できませんでした。日付を確認してください。";
+    return;
+  }
+  selectSign(sign, signButtons[sign.key]);
 });
 
 function selectSign(sign, btn) {
