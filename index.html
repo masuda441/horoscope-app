@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日の星座占い</title>
+<style>
+  :root {
+    --bg1: #1b1035;
+    --bg2: #3a1c5c;
+    --accent: #ffd166;
+    --card-bg: rgba(255,255,255,0.08);
+    --card-border: rgba(255,255,255,0.18);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: radial-gradient(circle at 20% 10%, #4a2a7a 0%, transparent 40%),
+                radial-gradient(circle at 80% 90%, #7a3a9a 0%, transparent 40%),
+                linear-gradient(160deg, var(--bg1), var(--bg2));
+    color: #fff;
+    padding: 24px 16px 60px;
+  }
+  .container { max-width: 880px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 {
+    font-size: 1.8rem;
+    margin: 0 0 6px;
+    letter-spacing: 0.05em;
+  }
+  header .date {
+    color: #d9c9ff;
+    font-size: 0.95rem;
+  }
+  .signs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .sign-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 8px;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .sign-btn:hover { transform: translateY(-3px); background: rgba(255,255,255,0.14); }
+  .sign-btn.active {
+    background: linear-gradient(135deg, #ffd166, #ff8fab);
+    color: #241338;
+    box-shadow: 0 6px 18px rgba(255, 209, 102, 0.35);
+    border-color: transparent;
+  }
+  .sign-btn .emoji { font-size: 1.7rem; }
+  .sign-btn .name { font-size: 0.85rem; font-weight: 600; }
+  .sign-btn .range { font-size: 0.65rem; opacity: 0.75; }
+  .sign-btn.active .range { opacity: 0.65; }
+
+  #result {
+    display: none;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 24px;
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.35s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  #result h2 {
+    margin: 0 0 4px;
+    font-size: 1.4rem;
+  }
+  #result .rank {
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .stars-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  .stars-row .label { width: 90px; flex-shrink: 0; color: #d9c9ff; font-size: 0.9rem; }
+  .stars { letter-spacing: 2px; color: var(--accent); font-size: 1.1rem; }
+  .fortune-text {
+    line-height: 1.8;
+    margin: 16px 0;
+    font-size: 1rem;
+  }
+  .lucky-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .lucky-item {
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .lucky-item .k { font-size: 0.75rem; color: #d9c9ff; }
+  .lucky-item .v { font-size: 1rem; font-weight: 600; margin-top: 2px; }
+  footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.75rem;
+    color: #b6a3e0;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✨ 今日の星座占い ✨</h1>
+      <div class="date" id="todayLabel"></div>
+    </header>
+
+    <div class="signs-grid" id="signsGrid"></div>
+
+    <div id="result">
+      <h2 id="resultTitle"></h2>
+      <div class="rank" id="resultRank"></div>
+      <div class="stars-row"><span class="label">総合運</span><span class="stars" id="starOverall"></span></div>
+      <div class="stars-row"><span class="label">恋愛運</span><span class="stars" id="starLove"></span></div>
+      <div class="stars-row"><span class="label">仕事運</span><span class="stars" id="starWork"></span></div>
+      <div class="stars-row"><span class="label">金運</span><span class="stars" id="starMoney"></span></div>
+      <p class="fortune-text" id="fortuneText"></p>
+      <div class="lucky-grid">
+        <div class="lucky-item"><div class="k">ラッキーカラー</div><div class="v" id="luckyColor"></div></div>
+        <div class="lucky-item"><div class="k">ラッキーアイテム</div><div class="v" id="luckyItem"></div></div>
+        <div class="lucky-item"><div class="k">ラッキーナンバー</div><div class="v" id="luckyNumber"></div></div>
+      </div>
+    </div>
+
+    <footer>結果はその日の日付に基づいて自動生成されます。同じ日は何度見ても同じ結果になります。</footer>
+  </div>
+
+<script>
+const SIGNS = [
+  { key: "aries",       name: "おひつじ座", emoji: "♈", range: "3/21–4/19" },
+  { key: "taurus",      name: "おうし座",   emoji: "♉", range: "4/20–5/20" },
+  { key: "gemini",      name: "ふたご座",   emoji: "♊", range: "5/21–6/21" },
+  { key: "cancer",      name: "かに座",     emoji: "♋", range: "6/22–7/22" },
+  { key: "leo",         name: "しし座",     emoji: "♌", range: "7/23–8/22" },
+  { key: "virgo",       name: "おとめ座",   emoji: "♍", range: "8/23–9/22" },
+  { key: "libra",       name: "てんびん座", emoji: "♎", range: "9/23–10/23" },
+  { key: "scorpio",     name: "さそり座",   emoji: "♏", range: "10/24–11/22" },
+  { key: "sagittarius", name: "いて座",     emoji: "♐", range: "11/23–12/21" },
+  { key: "capricorn",   name: "やぎ座",     emoji: "♑", range: "12/22–1/19" },
+  { key: "aquarius",    name: "みずがめ座", emoji: "♒", range: "1/20–2/18" },
+  { key: "pisces",      name: "うお座",     emoji: "♓", range: "2/19–3/20" },
+];
+
+const FORTUNE_TEMPLATES = [
+  "今日はいつもより直感が冴える日。ふと浮かんだアイデアを行動に移してみると、思わぬ好結果につながりそう。",
+  "小さな親切が巡り巡って自分に返ってくる一日。周りの人への気配りを忘れずに過ごしましょう。",
+  "焦らずマイペースを保つことが吉。急いで結論を出すより、じっくり考える方がうまくいきます。",
+  "コミュニケーション運が上昇中。気になっていた相手に連絡してみると良い反応がありそう。",
+  "新しいことへの挑戦が運気を後押ししてくれる日。気になっていたことに一歩踏み出してみて。",
+  "少し疲れが出やすいタイミング。無理をせず、休息を優先すると午後から調子が上がります。",
+  "整理整頓が運気アップの鍵。身の回りを片付けると、気持ちもすっきりして良い流れが来ます。",
+  "思わぬ出費に注意。買い物は本当に必要かどうか一呼吸おいてから決めましょう。",
+  "感謝の気持ちを言葉にすると、人間関係がより良い方向へ。素直な一言が幸運を呼びます。",
+  "計画通りに物事が進みやすい安定した一日。落ち着いて目の前のことに集中しましょう。",
+  "ひらめきが冴える反面、気が散りやすい日でもあります。一つのことに集中する時間を作って。",
+  "過去の努力が実を結び始める兆し。これまで続けてきたことに自信を持って良いタイミングです。",
+];
+
+const COLORS = ["ラベンダー", "コーラルピンク", "エメラルドグリーン", "サンイエロー", "スカイブルー", "ワインレッド", "アイボリー", "ミントグリーン", "ゴールド", "シルバー", "ターコイズ", "テラコッタ"];
+const ITEMS = ["万年筆", "観葉植物", "腕時計", "ハンカチ", "手帳", "イヤホン", "マグカップ", "アロマキャンドル", "鏡", "折り畳み傘", "本", "キーホルダー"];
+
+function todayDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// Simple deterministic hash so the same sign + same date always produces the same result.
+function hashSeed(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function starString(n) {
+  return "★".repeat(n) + "☆".repeat(5 - n);
+}
+
+function computeFortune(signKey, dateStr) {
+  const rand = mulberry32(hashSeed(signKey + dateStr));
+  const overall = 1 + Math.floor(rand() * 5);
+  const love = 1 + Math.floor(rand() * 5);
+  const work = 1 + Math.floor(rand() * 5);
+  const money = 1 + Math.floor(rand() * 5);
+  const text = FORTUNE_TEMPLATES[Math.floor(rand() * FORTUNE_TEMPLATES.length)];
+  const color = COLORS[Math.floor(rand() * COLORS.length)];
+  const item = ITEMS[Math.floor(rand() * ITEMS.length)];
+  const number = 1 + Math.floor(rand() * 9);
+  return { overall, love, work, money, text, color, item, number };
+}
+
+function computeRanking(dateStr) {
+  const scored = SIGNS.map(s => {
+    const rand = mulberry32(hashSeed("rank-" + s.key + dateStr));
+    return { key: s.key, score: rand() };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  const rankMap = {};
+  scored.forEach((s, i) => rankMap[s.key] = i + 1);
+  return rankMap;
+}
+
+const dateStr = todayDateStr();
+const rankMap = computeRanking(dateStr);
+
+document.getElementById("todayLabel").textContent =
+  new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "long" }) + " の運勢";
+
+const grid = document.getElementById("signsGrid");
+SIGNS.forEach(sign => {
+  const btn = document.createElement("button");
+  btn.className = "sign-btn";
+  btn.innerHTML = `<span class="emoji">${sign.emoji}</span><span class="name">${sign.name}</span><span class="range">${sign.range}</span>`;
+  btn.addEventListener("click", () => selectSign(sign, btn));
+  grid.appendChild(btn);
+});
+
+function selectSign(sign, btn) {
+  document.querySelectorAll(".sign-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  const f = computeFortune(sign.key, dateStr);
+  const rank = rankMap[sign.key];
+
+  document.getElementById("result").style.display = "block";
+  document.getElementById("resultTitle").textContent = `${sign.emoji} ${sign.name}`;
+  document.getElementById("resultRank").textContent = `本日の運勢ランキング 第${rank}位 / 12`;
+  document.getElementById("starOverall").textContent = starString(f.overall);
+  document.getElementById("starLove").textContent = starString(f.love);
+  document.getElementById("starWork").textContent = starString(f.work);
+  document.getElementById("starMoney").textContent = starString(f.money);
+  document.getElementById("fortuneText").textContent = f.text;
+  document.getElementById("luckyColor").textContent = f.color;
+  document.getElementById("luckyItem").textContent = f.item;
+  document.getElementById("luckyNumber").textContent = f.number;
+
+  document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+</script>
+</body>
+</html>
